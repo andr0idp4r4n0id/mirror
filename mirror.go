@@ -1,5 +1,4 @@
 package main
-package main
 
 import (
 	"bufio"
@@ -75,7 +74,7 @@ func FindPayloadInReversePayloads(matches []string, reversed_payload map[string]
 
 func PrintReflections(reflected_url url.Values, new_url string, url_t string) {
 	if len(reflected_url) > 0 {
-		encoded_reflected_payloads := reflected_url.Encode()
+		encoded_reflected_payloads := EncodePayloads(reflected_url)
 		url := strings.Split(url_t, "?")[0]
 		url = fmt.Sprintf("%s?%s", url, encoded_reflected_payloads)
 		fmt.Println(url)
