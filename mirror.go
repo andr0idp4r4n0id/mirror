@@ -1,4 +1,5 @@
 package main
+package main
 
 import (
 	"bufio"
@@ -11,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/labstack/gommon/random"
 )
 
 func CheckContains(url_t string) bool {
@@ -19,13 +22,15 @@ func CheckContains(url_t string) bool {
 	return matched
 }
 
-func SetPayloads(parameters url.Values, reversed_payload map[string]string, payloads url.Values, i int) {
+func SetPayloads(parameters url.Values) (map[string]string, url.Values) {
+	payloads := url.Values{}
+	reversed_payload := make(map[string]string)
 	for name := range parameters {
-		payload := "swagonlolnow" + fmt.Sprint(i)
+		payload := random.New().String(10, "abcdefghklqpoirykmnbv")
 		payloads.Set(name, payload)
 		reversed_payload[payload] = name
-		i++
 	}
+	return (reversed_payload), (payloads)
 }
 
 func EncodePayloads(payloads url.Values) string {
@@ -45,27 +50,27 @@ func SendHttpRequestReadResponseBody(new_url string) []byte {
 	return bodyBytes
 }
 
-func CheckMatches(bodyString string, i int) []string {
+func CheckMatches(bodyString string, reversed_payload map[string]string) []string {
 	var matches []string
-	for x := 0; x <= i; x++ {
-		pattern := "swagonlolnow" + fmt.Sprint(x)
-		re, _ := regexp.Compile(pattern)
+	for payload := range reversed_payload {
+		re, _ := regexp.Compile(payload)
 		matches = append(matches, re.FindString(bodyString))
 	}
+
 	return matches
 }
 
 func FindPayloadInReversePayloads(matches []string, reversed_payload map[string]string) url.Values {
 	reflected_url := url.Values{}
-	for payload, name := range reversed_payload {
-		for _, match := range matches {
+	for _, match := range matches {
+		for payload, name := range reversed_payload {
 			if match == payload {
 				reflected_url.Set(name, "1")
+				break
 			}
 		}
 	}
 	return reflected_url
-
 }
 
 func PrintReflections(reflected_url url.Values, new_url string, url_t string) {
@@ -82,10 +87,7 @@ func PrintReflections(reflected_url url.Values, new_url string, url_t string) {
 func CheckReflectedParameters(url_t string, parameters url.Values, wg *sync.WaitGroup, sem chan bool) {
 	defer wg.Done()
 	<-sem
-	i := 0
-	payloads := url.Values{}
-	reversed_payload := make(map[string]string)
-	SetPayloads(parameters, reversed_payload, payloads, i)
+	reversed_payload, payloads := SetPayloads(parameters)
 	encoded_payloads := EncodePayloads(payloads)
 	var new_url string
 	if CheckContains(url_t) {
@@ -94,11 +96,11 @@ func CheckReflectedParameters(url_t string, parameters url.Values, wg *sync.Wait
 		new_url = fmt.Sprintf("%s?%s", url_t, encoded_payloads)
 	}
 	bodyBytes := SendHttpRequestReadResponseBody(new_url)
-	if bodyBytes != nil {
+	if bodyBytes == nil {
 		return
 	}
 	bodyString := string(bodyBytes)
-	matches := CheckMatches(bodyString, i)
+	matches := CheckMatches(bodyString, reversed_payload)
 	reflected_url := FindPayloadInReversePayloads(matches, reversed_payload)
 	PrintReflections(reflected_url, new_url, url_t)
 }
