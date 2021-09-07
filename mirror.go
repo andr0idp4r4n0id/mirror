@@ -83,9 +83,7 @@ func PrintReflections(reflected_url url.Values, new_url string, url_t string) {
 	}
 }
 
-func CheckReflectedParameters(url_t string, parameters url.Values, wg *sync.WaitGroup, sem chan bool) {
-	defer wg.Done()
-	<-sem
+func CheckReflectedParameters(url_t string, parameters url.Values, sem chan bool) {
 	reversed_payload, payloads := SetPayloads(parameters)
 	encoded_payloads := EncodePayloads(payloads)
 	var new_url string
@@ -112,12 +110,13 @@ func main() {
 	for reader.Scan() {
 		url_t := reader.Text()
 		uri, _ := url.Parse(url_t)
+		sem <- true
 		wg.Add(1)
-		sem <- true
-		go CheckReflectedParameters(url_t, uri.Query(), &wg, sem)
-	}
-	for i := 0; i < cap(sem); i++ {
-		sem <- true
+		go func() {
+			CheckReflectedParameters(url_t, uri.Query(), sem)
+			<-sem
+		}()
+		wg.Done()
 	}
 	wg.Wait()
 }
