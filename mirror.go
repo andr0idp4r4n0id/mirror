@@ -105,6 +105,7 @@ func CheckReflectedParameters(url_t string, parameters url.Values, sem chan bool
 func main() {
 	reader := bufio.NewScanner(os.Stdin)
 	conc := flag.Int("concurrency", 10, "concurrency level.")
+	flag.Parse()
 	sem := make(chan bool, *conc)
 	var wg sync.WaitGroup
 	for reader.Scan() {
