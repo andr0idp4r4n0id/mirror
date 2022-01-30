@@ -83,7 +83,7 @@ func PrintReflections(reflected_url url.Values, new_url string, url_t string) {
 	}
 }
 
-func CheckReflectedParameters(url_t string, parameters url.Values, sem chan bool) {
+func CheckReflectedParameters(url_t string, parameters url.Values) {
 	reversed_payload, payloads := SetPayloads(parameters)
 	encoded_payloads := EncodePayloads(payloads)
 	var new_url string
@@ -106,18 +106,17 @@ func main() {
 	reader := bufio.NewScanner(os.Stdin)
 	conc := flag.Int("concurrency", 10, "concurrency level.")
 	flag.Parse()
-	sem := make(chan bool, *conc)
 	var wg sync.WaitGroup
-	for reader.Scan() {
-		url_t := reader.Text()
-		uri, _ := url.Parse(url_t)
-		sem <- true
-		wg.Add(1)
-		go func() {
-			CheckReflectedParameters(url_t, uri.Query(), sem)
-			<-sem
-		}()
-		wg.Done()
+	for i := 0; i < *conc; i++ {
+		for reader.Scan() {
+			url_t := reader.Text()
+			uri, _ := url.Parse(url_t)
+			wg.Add(1)
+			go func() {
+				CheckReflectedParameters(url_t, uri.Query())
+				wg.Done()
+			}()
+		}
+		wg.Wait()
 	}
-	wg.Wait()
 }
