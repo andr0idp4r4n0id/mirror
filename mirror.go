@@ -22,7 +22,7 @@ func CheckReflection(resp *http.Response) bool {
 		return false
 	}
 	bodyString := string(body_bytes)
-	return strings.Contains(bodyString, "swagonswagggyswag")
+	return strings.Contains(bodyString, "swagonswagggyswag123")
 }
 
 func SendHttpRequest(url_t string) *http.Response {
@@ -33,23 +33,22 @@ func SendHttpRequest(url_t string) *http.Response {
 	return resp
 }
 
-func ReplaceValuesInUlr(url_t string, query url.Values) string {
-	url_t = strings.Split(url_t, "?")[0]
-	url_t += "?" + query.Encode()
+func ReplaceValuesInUlr(url_t string, query string) string {
+	url_t += "?" + query
 	return url_t
 
 }
 
-func ReplaceValuesInQuery(query url.Values) url.Values {
-	for param := range query {
-		query[param][0] = "swagonswagggyswag"
-	}
-	return query
+func ReplaceValuesInQuery(param, query string) string {
+	query_strings := url.Values{}
+	query_strings.Set(param, query)
+	query_strings_encoded := query_strings.Encode()
+	return query_strings_encoded
 }
 
-func CheckReflectedParameters(url_t string, query url.Values) {
-	query = ReplaceValuesInQuery(query)
-	url_t = ReplaceValuesInUlr(url_t, query)
+func CheckReflectedParameters(url_t string, param string, query string) {
+	query_strings_encoded := ReplaceValuesInQuery(param, query)
+	url_t = ReplaceValuesInUlr(url_t, query_strings_encoded)
 	resp := SendHttpRequest(url_t)
 	if resp == nil {
 		return
@@ -70,12 +69,16 @@ func main() {
 		for reader.Scan() {
 			url_t := reader.Text()
 			uri, _ := url.Parse(url_t)
-			wg.Add(1)
-			go func() {
-				CheckReflectedParameters(url_t, uri.Query())
-				wg.Done()
-			}()
+			url_t = strings.Split(url_t, "?")[0]
+			for key := range uri.Query() {
+				param := key
+				wg.Add(1)
+				go func() {
+					CheckReflectedParameters(url_t, param, "swagonswagggyswag123")
+					wg.Done()
+				}()
+			}
+			wg.Wait()
 		}
-		wg.Wait()
 	}
 }
