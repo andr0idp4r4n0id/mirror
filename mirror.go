@@ -34,7 +34,8 @@ func SendHttpRequest(url_t string) *http.Response {
 }
 
 func ReplaceValuesInUlr(url_t string, query string) string {
-	return url_t += "?" + query
+	url_t += "?" + query
+	return url_t
 }
 
 func ReplaceValuesInQuery(param, query string) string {
